@@ -17,4 +17,3 @@ for cat in categories:
 
 datasets = datasets.sample(frac=1, random_state=0).reset_index(drop=True)
 
-print(datasets.head())
