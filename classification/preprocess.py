@@ -29,8 +29,3 @@ for title in datasets["title"]:
 def sentence2index(sentence):
     wakati = make_wakati(sentence)
     return torch.tensor([word2index[w] for w in wakati], dtype=torch.long)
-
-
-# テスト
-test = "例のあのメニューも！ニコニコ超会議のフードコートメニュー14種類紹介（前半）"
-print(sentence2index(test))
