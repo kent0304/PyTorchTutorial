@@ -1,5 +1,7 @@
 from preprocess import  sentence2index
 from preprocess import word2index
+from prepare_data import categories
+import torch
 import torch.nn as nn
 
 # 全単語数を取得
@@ -14,7 +16,6 @@ lstm = nn.LSTM(EMBEDDING_DIM, HIDDEN_DIM)
 sentence = "震災をうけて感じた、大切だと思ったこと"
 input = sentence2index(sentence)
 emb = embeds(input)
-print(emb)
 # バッチを取り入れるために変換
 lstm_input = emb.view(len(input),1,-1)
 out1, out2 = lstm(lstm_input)
@@ -43,7 +44,15 @@ class LSTMClassifier(nn.Module):
         # lstm_out[0]は3次元テンソルなので2次元に調整
         tag_space = self.hidden2tag(lstm_out[0].view(-1, HIDDEN_DIM))
         # softmaxを用いて確率として表現
-        tag_score = self.softmax(tag_score)
-        return tag_scores
-        
+        tag_score = self.softmax(tag_space)
+        return tag_score
+
+# 正解ラベルの変換
+category2index = {}
+for cat in categories:
+    if cat in category2index: continue
+    category2index[cat] = len(category2index)
+
+def category2tensor(cat):
+    return torch.tensor([category2index[cat]], dtype=torch.long)
 
