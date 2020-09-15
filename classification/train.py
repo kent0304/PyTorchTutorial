@@ -6,6 +6,7 @@ from preprocess import word2index
 from preprocess import  sentence2index
 from model import LSTMClassifier
 from model import category2tensor
+import collections 
 import torch.nn as nn
 
 # 元データを7:3に分ける
@@ -51,3 +52,30 @@ for epoch in range(100):
     losses.append(all_loss)
     print("epoch", epoch, "\t", "loss", all_loss)
 print("done.")
+
+
+
+# IDをカテゴリに戻す用
+index2category = {}
+for cat, idx in category2index:
+    index2category[idx] = cat 
+
+
+# テストデータの母数計算
+test_num = len(test_data)
+# 正解の件数
+ans = 0
+# 勾配自動計算OFF
+with torch.no_grad():
+    for title, category in zip(test_data["title"], test_data["category"]):
+        # テストデータの予測
+        inputs = sentence2index(title)
+        out = model(inputs)
+
+        # outの一番大きい要素が予測結果
+        _, predict = torch.max(out, 1)
+
+        category2tensor(category)
+        if predict == answer:
+            a += 1
+print("predict : ", a/ test_num)
