@@ -6,8 +6,10 @@ from preprocess import word2index
 from preprocess import  sentence2index
 from model import LSTMClassifier
 from model import category2tensor
+from model import category2index
 import collections 
 import torch.nn as nn
+import pandas as pd 
 
 # 元データを7:3に分ける
 train_data, test_data = train_test_split(datasets, train_size=0.7)
@@ -60,6 +62,8 @@ index2category = {}
 for cat, idx in category2index:
     index2category[idx] = cat 
 
+# answerは正解ラベル、predictはLSTMの予測結果、exactは正解していればO間違ってればX
+predict_df = pd.DataFrame(columns=["answer", "predict", "exact"])
 
 # テストデータの母数計算
 test_num = len(test_data)
@@ -74,8 +78,25 @@ with torch.no_grad():
 
         # outの一番大きい要素が予測結果
         _, predict = torch.max(out, 1)
+        answer = category2tensor(category)
+        exact = "O" if predict.item() == answer.item() else "X"
+        s = pd.Series([answer.item(), predict.item(), exact], index=predict_df.columns)
+        predict_df = predict_df.append(s, ignore_index=True)
 
-        category2tensor(category)
-        if predict == answer:
-            a += 1
-print("predict : ", a/ test_num)
+# Fスコア格納用のDF
+fscore_df = pd.DataFrame(columns=["category", "all", "precision", "recall", "fscore"])
+
+# 分類器が答えた各カテゴリの件数
+prediction_count = collections.Counter(predict_df["predict"])
+# 各カテゴリの総件数
+answer_count = collections.Counter(predict_df["answer"])
+
+# Fスコアを求める
+for i in range(9):
+    all_count = answer_count[i]
+    precision = len(predict_df.query('predict == ' + str(i) + ' and exact == "O"')) / prediction_count[i]
+    recall = len(predict_df.query('answer == ' + str(i) + ' and exact == "0"')) / all_count 
+    fscore = 2*precision*recall / (precision + recall)
+    s = pd.Series([index2category[i], all_count, round(precision, 2), round(recall, 2), round(fscore, 2)], index=fscore_df.columns)
+    fscore_df = fscore_df.append(s, ignore_index=True)
+print(fscore_df)
